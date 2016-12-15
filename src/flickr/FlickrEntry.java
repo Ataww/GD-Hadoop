@@ -15,6 +15,7 @@ import static flickr.Country.getCountryAt;
 public class FlickrEntry {
 
     private String[] data;
+    private String country;
 
     public FlickrEntry(String line) {
         data = line.split("\\t");
@@ -23,21 +24,20 @@ public class FlickrEntry {
         }
     }
 
-    public int getPhotoID() {
-        return Integer.parseInt(data[0]);
-    }
-
     public String[] getTags() {
-        return data[8].split(";");
+        return data[8].split(",");
     }
 
     public String getCountry() {
-        try {
-            return getCountryAt(Double.valueOf(data[11]), Double.valueOf(data[10])).toString();
-        } catch(NullPointerException e) {
-            System.out.println("AOZPRJRAJRIOHRAZRAVRJAZRVAZR");
-            return null;
+        if(country == null) {
+            try {
+                country = getCountryAt(Double.valueOf(data[11]), Double.valueOf(data[10])).toString();
+            } catch (NullPointerException e) {
+                System.out.println("APPROPRIATOR");
+                return null;
+            }
         }
+        return country;
     }
 
     public static void main(String args[]) throws IOException {

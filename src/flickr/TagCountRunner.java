@@ -31,14 +31,14 @@ public class TagCountRunner {
             FlickrEntry entry = new FlickrEntry(value.toString());
             for (String s : entry.getTags()) {
                 if(entry.getCountry() == null) {
-                    continue;
+                    break;
                 }
                 context.write(new Text(entry.getCountry()), new Text(s));
             }
         }
     }
 
-    public static class TagCountryReducer extends Reducer<Text, Text, Text, Text> {
+    public static class TagCountryReducer extends Reducer<Text, Text, Text, IntWritable> {
         @Override
         protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             Map<String, AtomicInteger> tagCounts = new HashMap<>();
@@ -49,18 +49,19 @@ public class TagCountRunner {
                     tagCounts.get(t.toString()).incrementAndGet();
                 }
             }
-            MinMaxPriorityQueue<StringAndInt> populaires = MinMaxPriorityQueue.maximumSize(context.getConfiguration().getInt("K", 1)).create();
+            MinMaxPriorityQueue<StringAndInt> populars = MinMaxPriorityQueue.maximumSize(context.getConfiguration().getInt("K", 1)).create();
             for(Map.Entry<String, AtomicInteger> e : tagCounts.entrySet()) {
                 StringAndInt couple = new StringAndInt(e.getKey(),e.getValue().get());
-                populaires.add(couple);
+                populars.add(couple);
             }
             StringBuilder sb = new StringBuilder();
-            while(!populaires.isEmpty()) {
-                StringAndInt pop = populaires.poll();
+            while(!populars.isEmpty()) {
+                StringAndInt pop = populars.poll();
+                context.write(new Text("("+key.toString()+","+pop.getTag()+")"), new IntWritable(pop.getCount()));
                 sb.append(pop.getTag()+"["+pop.getCount()+"],");
             }
             sb.deleteCharAt(sb.length() - 1);
-            context.write(key,new Text(sb.toString()));
+            //context.write(key,new Text(sb.toString()));
         }
     }
 
@@ -73,7 +74,7 @@ public class TagCountRunner {
         job.setMapOutputKeyClass(Text.class);
         job.setMapOutputValueClass(Text.class);
         job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
 
         job.setMapperClass(TagCountryMapper.class);
         job.setReducerClass(TagCountryReducer.class);
