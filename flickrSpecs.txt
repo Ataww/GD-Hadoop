@@ -20,7 +20,7 @@ This dataset is formed by a single file that contains the following tab-separate
    6 Capture device
    7 Title
    8 Description
-   8 User tags (comma-separated)
+   9 User tags (comma-separated)
    10 Machine tags (comma-separated)
    11 Longitude
    12 Latitude

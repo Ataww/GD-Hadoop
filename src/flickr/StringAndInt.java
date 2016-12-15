@@ -39,7 +39,7 @@ public class StringAndInt implements WritableComparable<StringAndInt> {
     @Override
     public int compareTo(StringAndInt o) {
         if (this.tag.equals(o.getTag())) {
-            return Integer.compare(this.count, o.count);
+            return Integer.compare(o.count, this.count);
         } else {
             return this.tag.compareTo(o.getTag());
         }
