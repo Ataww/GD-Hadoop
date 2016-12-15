@@ -1,9 +1,9 @@
 *.iml
 .idea/
 
-.classpath/
-.settings/
-.project/
+.classpath
+.settings
+.project
 
 *out/
 
