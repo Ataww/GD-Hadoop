@@ -1,0 +1,12 @@
+*.iml
+.idea/
+
+.classpath/
+.settings/
+.project/
+
+*out/
+
+*.class
+
+.DS_Store
