@@ -23,9 +23,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Created by Ataww on 08/12/2016.
  */
-public class TagCountRunner {
+public class Question2_1 {
 
-    public static class TagCountryMapper extends Mapper<LongWritable, Text, Text, StringAndInt> {
+    public static class TagCountryMapper extends Mapper<LongWritable, Text, Text, Text> {
         @Override
         protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             FlickrEntry entry = new FlickrEntry(value.toString());
@@ -33,20 +33,20 @@ public class TagCountRunner {
                 if(entry.getCountry() == null) {
                     break;
                 }
-                context.write(new Text(entry.getCountry()), new StringAndInt(s,1));
+                context.write(new Text(entry.getCountry()), new Text(s));
             }
         }
     }
 
-    public static class TagCountryReducer extends Reducer<Text, StringAndInt, Text, IntWritable> {
+    public static class TagCountryReducer extends Reducer<Text, Text, Text, IntWritable> {
         @Override
-        protected void reduce(Text key, Iterable<StringAndInt> values, Context context) throws IOException, InterruptedException {
+        protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             Map<String, AtomicInteger> tagCounts = new HashMap<>();
-            for (StringAndInt t : values) {
-                if (!tagCounts.containsKey(t.getTag().toString())) {
-                    tagCounts.put(t.getTag().toString(), new AtomicInteger(1));
+            for (Text t : values) {
+                if (!tagCounts.containsKey(t.toString())) {
+                    tagCounts.put(t.toString(), new AtomicInteger(1));
                 } else {
-                    tagCounts.get(t.getTag().toString()).incrementAndGet();
+                    tagCounts.get(t.toString()).incrementAndGet();
                 }
             }
             MinMaxPriorityQueue<StringAndInt> populars = MinMaxPriorityQueue.maximumSize(context.getConfiguration().getInt("K", 1)).create();
@@ -72,7 +72,7 @@ public class TagCountRunner {
         Job job = Job.getInstance(conf, "tag country");
         job.setJarByClass(TagCountRunner.class);
         job.setMapOutputKeyClass(Text.class);
-        job.setMapOutputValueClass(StringAndInt.class);
+        job.setMapOutputValueClass(Text.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(IntWritable.class);
 
