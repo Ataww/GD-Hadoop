@@ -38,15 +38,33 @@ public class TagCountRunner {
         }
     }
 
+    public static class TagCountryCombiner extends Reducer<Text, StringAndInt, Text, StringAndInt> {
+
+        @Override
+        protected void reduce(Text key, Iterable<StringAndInt> values, Context context) throws IOException, InterruptedException {
+            Map<String, AtomicInteger> tagCounts = new HashMap<>();
+            for(StringAndInt t : values) {
+                if (!tagCounts.containsKey(t.getTag().toString())) {
+                    tagCounts.put(t.getTag().toString(), new AtomicInteger(1));
+                } else {
+                    tagCounts.get(t.getTag().toString()).incrementAndGet();
+                }
+            }
+            for(Map.Entry<String, AtomicInteger> e : tagCounts.entrySet()) {
+                context.write(key, new StringAndInt(e.getKey(), e.getValue().get()));
+            }
+        }
+    }
+
     public static class TagCountryReducer extends Reducer<Text, StringAndInt, Text, IntWritable> {
         @Override
         protected void reduce(Text key, Iterable<StringAndInt> values, Context context) throws IOException, InterruptedException {
             Map<String, AtomicInteger> tagCounts = new HashMap<>();
             for (StringAndInt t : values) {
                 if (!tagCounts.containsKey(t.getTag().toString())) {
-                    tagCounts.put(t.getTag().toString(), new AtomicInteger(1));
+                    tagCounts.put(t.getTag().toString(), new AtomicInteger(t.getCount()));
                 } else {
-                    tagCounts.get(t.getTag().toString()).incrementAndGet();
+                    tagCounts.get(t.getTag().toString()).addAndGet(t.getCount());
                 }
             }
             MinMaxPriorityQueue<StringAndInt> populars = MinMaxPriorityQueue.maximumSize(context.getConfiguration().getInt("K", 1)).create();
@@ -77,6 +95,7 @@ public class TagCountRunner {
         job.setOutputValueClass(IntWritable.class);
 
         job.setMapperClass(TagCountryMapper.class);
+        job.setCombinerClass(TagCountryCombiner.class);
         job.setReducerClass(TagCountryReducer.class);
         job.setNumReduceTasks(3);
         job.setInputFormatClass(TextInputFormat.class);
