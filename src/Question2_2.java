@@ -1,6 +1,8 @@
-package flickr;
 
 import com.google.common.collect.MinMaxPriorityQueue;
+import flickr.FlickrEntry;
+import flickr.StringAndInt;
+import flickr.TagCountRunner;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -23,9 +25,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Created by Ataww on 08/12/2016.
  */
-public class Question2_1 {
+public class Question2_2 {
 
-    public static class TagCountryMapper extends Mapper<LongWritable, Text, Text, Text> {
+    public static class TagCountryMapper extends Mapper<LongWritable, Text, Text, StringAndInt> {
         @Override
         protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             FlickrEntry entry = new FlickrEntry(value.toString());
@@ -33,20 +35,38 @@ public class Question2_1 {
                 if(entry.getCountry() == null) {
                     break;
                 }
-                context.write(new Text(entry.getCountry()), new Text(s));
+                context.write(new Text(entry.getCountry()), new StringAndInt(s,1));
             }
         }
     }
 
-    public static class TagCountryReducer extends Reducer<Text, Text, Text, IntWritable> {
+    public static class TagCountryCombiner extends Reducer<Text, StringAndInt, Text, StringAndInt> {
+
         @Override
-        protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        protected void reduce(Text key, Iterable<StringAndInt> values, Context context) throws IOException, InterruptedException {
             Map<String, AtomicInteger> tagCounts = new HashMap<>();
-            for (Text t : values) {
-                if (!tagCounts.containsKey(t.toString())) {
-                    tagCounts.put(t.toString(), new AtomicInteger(1));
+            for(StringAndInt t : values) {
+                if (!tagCounts.containsKey(t.getTag().toString())) {
+                    tagCounts.put(t.getTag().toString(), new AtomicInteger(1));
                 } else {
-                    tagCounts.get(t.toString()).incrementAndGet();
+                    tagCounts.get(t.getTag().toString()).incrementAndGet();
+                }
+            }
+            for(Map.Entry<String, AtomicInteger> e : tagCounts.entrySet()) {
+                context.write(key, new StringAndInt(e.getKey(), e.getValue().get()));
+            }
+        }
+    }
+
+    public static class TagCountryReducer extends Reducer<Text, StringAndInt, Text, IntWritable> {
+        @Override
+        protected void reduce(Text key, Iterable<StringAndInt> values, Context context) throws IOException, InterruptedException {
+            Map<String, AtomicInteger> tagCounts = new HashMap<>();
+            for (StringAndInt t : values) {
+                if (!tagCounts.containsKey(t.getTag().toString())) {
+                    tagCounts.put(t.getTag().toString(), new AtomicInteger(t.getCount()));
+                } else {
+                    tagCounts.get(t.getTag().toString()).addAndGet(t.getCount());
                 }
             }
             MinMaxPriorityQueue<StringAndInt> populars = MinMaxPriorityQueue.maximumSize(context.getConfiguration().getInt("K", 1)).create();
@@ -70,13 +90,14 @@ public class Question2_1 {
         conf.setInt("K", Integer.parseInt(args[2]));
         String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
         Job job = Job.getInstance(conf, "tag country");
-        job.setJarByClass(Question2_1.class);
+        job.setJarByClass(Question2_2.class);
         job.setMapOutputKeyClass(Text.class);
-        job.setMapOutputValueClass(Text.class);
+        job.setMapOutputValueClass(StringAndInt.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(IntWritable.class);
 
         job.setMapperClass(TagCountryMapper.class);
+        job.setCombinerClass(TagCountryCombiner.class);
         job.setReducerClass(TagCountryReducer.class);
         job.setNumReduceTasks(3);
         job.setInputFormatClass(TextInputFormat.class);
