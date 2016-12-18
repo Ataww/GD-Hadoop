@@ -1,6 +1,7 @@
-package flickr;
-
 import com.google.common.collect.MinMaxPriorityQueue;
+import flickr.CountryAndTag;
+import flickr.FlickrEntry;
+import flickr.StringAndInt;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -25,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Created by Ataww on 08/12/2016.
  */
-public class TagCountRunner {
+public class Question3 {
 
     public static class TagCountryMapper extends Mapper<LongWritable, Text, CountryAndTag, IntWritable> {
         @Override
@@ -108,7 +109,7 @@ public class TagCountRunner {
         conf.setInt("K", Integer.parseInt(args[3]));
         String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
         Job job1 = Job.getInstance(conf, "tag country");
-        job1.setJarByClass(TagCountRunner.class);
+        job1.setJarByClass(Question3.class);
         job1.setMapOutputKeyClass(CountryAndTag.class);
         job1.setMapOutputValueClass(IntWritable.class);
         job1.setOutputKeyClass(CountryAndTag.class);
@@ -125,7 +126,7 @@ public class TagCountRunner {
         job1.waitForCompletion(true);
 
         Job job2 = Job.getInstance(conf, "tag country");
-        job2.setJarByClass(TagCountRunner.class);
+        job2.setJarByClass(Question3.class);
         job2.setMapOutputKeyClass(Text.class);
         job2.setMapOutputValueClass(StringAndInt.class);
         job2.setOutputKeyClass(Text.class);
